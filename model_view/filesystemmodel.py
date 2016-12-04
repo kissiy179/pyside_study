@@ -16,5 +16,6 @@ if __name__ == '__main__':
 	lst = QtGui.QListView(splitter)
 	lst.setModel(model)
 	lst.setRootIndex(model.index(crr_dir))
+	lst.setSelectionModel(tree.selectionModel())
 	splitter.show()
 	sys.exit(app.exec_())
