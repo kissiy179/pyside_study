@@ -28,7 +28,8 @@ class SpinBoxDelegate(QtGui.QItemDelegate):
 
 	def setModelData(self, editor, model, index):
 		#spinbox = QtGui.QSpinBox(editor)
-		value = editor.interpretText()
+		editor.interpretText()
+		value = editor.value()
 		model.setData(index, value, QtCore.Qt.EditRole)
 
 
