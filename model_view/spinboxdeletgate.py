@@ -20,14 +20,10 @@ class SpinBoxDelegate(QtGui.QItemDelegate):
 	def setEditorData(self, editor, index):
 		value = int(index.data(QtCore.Qt.EditRole))
 		print index.row(), '---&', value
-		# print int(value), '---' 
-		# print 'test'
-		# spinbox = QtGui.QSpinBox(editor)
 		editor.setValue(value)
 
 
 	def setModelData(self, editor, model, index):
-		#spinbox = QtGui.QSpinBox(editor)
 		editor.interpretText()
 		value = editor.value()
 		model.setData(index, value, QtCore.Qt.EditRole)
