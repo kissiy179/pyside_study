@@ -14,5 +14,9 @@ if __name__ == '__main__':
 	bottomRight = model.index(5,2)
 	selection = QtGui.QItemSelection(topLeft, bottomRight)
 	selectionModel.select(selection, QtGui.QItemSelectionModel.Select)
+	indexes = selectionModel.selectedIndexes()
+	for index in indexes:
+		text = '({0},{1})'.format(index.row(), index.column())
+		model.setData(index, text)
 	table.show()
 	sys.exit(app.exec_())
