@@ -7,6 +7,10 @@ from PySide import QtCore, QtGui
 
 class StringListModel(QtCore.QAbstractListModel):
 
+
+	insertstring = 'tmp'
+
+
 	def __init__(self, strings, parent=None):
 		super(StringListModel, self).__init__(parent)
 		self.strings = strings
@@ -56,7 +60,7 @@ class StringListModel(QtCore.QAbstractListModel):
 	def insertRows(self, position, rows, parent=QtCore.QModelIndex()):
 		self.beginInsertRows(parent, position, position + rows -1)
 		for row in range(rows):
-			self.strings.insert(position, str(uuid.uuid4()))
+			self.strings.insert(position, self.insertstring)
 		self.endInsertRows()
 		return True
 
@@ -76,7 +80,11 @@ if __name__ == '__main__':
 	def insertToSelection():
 		indexes = selection.selectedIndexes()
 		row = indexes[0].row() if indexes else 0
-		model.insertRows(row, 1)
+		dialog = QtGui.QInputDialog()
+		text, ok = dialog.getText(dialog, 'title', 'label', QtGui.QLineEdit.Normal, model.insertstring)
+		if ok and text:
+			model.insertstring = text
+			model.insertRows(row, 1)
 
 	def removeFromSelection():
 		indexes = selection.selectedIndexes()
