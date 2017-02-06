@@ -87,7 +87,7 @@ class DragDropListModel(QtCore.QAbstractListModel):
 
 
 	def dropMimeData(self, data, action, row, column, parent):
-		print row, column
+		print row, column, parent, '----'
 		if action == QtCore.Qt.IgnoreAction:
 			return True
 		if not data.hasFormat('application/vnd.text.list'):
