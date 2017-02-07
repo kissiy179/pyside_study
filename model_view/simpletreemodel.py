@@ -29,10 +29,15 @@ class SimpleTreeModel(QtCore.QAbstractItemModel):
 
 	columns = ['Widget Hierarchy']  # カラムリスト
 
-	def __init__(self, parent=None):
+	def __init__(self, parent=None, topWidget=None):
 		'''初期化処理'''
 		super(SimpleTreeModel, self).__init__(parent)
-		self.topWidget = QtGui.QWidget()
+		self.topWidget = topWidget
+
+
+
+	def widget(self, index):
+		return QtGui.QWidget(index.internalPointer())
 
 
 
@@ -41,9 +46,10 @@ class SimpleTreeModel(QtCore.QAbstractItemModel):
 		アイテムのデータを返す関数
 		最低でもroleがDisplayRoleのときに値を返さないと実用性がない
 		'''
+		print 'data', index#@@
 		if role != QtCore.Qt.DisplayRole or not index.isValid():
 			return None
-		return type(QtGui.QWidget(index.internalPointer())).__name__
+		return type(self.wiget(index)).__name__
 
 
 
@@ -65,8 +71,9 @@ class SimpleTreeModel(QtCore.QAbstractItemModel):
 		子ウィジェットの数を行数とする
 		ただし、ルート直下の行数は1とする
 		'''
+		print 'rowCount: ', parent#@@
 		if parent.isValid():
-			wgt = QtGui.QWidget(parent.internalPointer())
+			wgt = self.widget(parent)
 			return len(wgt.findChildren(QtGui.QWidget))
 		return 1
 
@@ -81,6 +88,7 @@ class SimpleTreeModel(QtCore.QAbstractItemModel):
 
 
 	def index(self, row, column, parent):
+		print 'index: ', row, column, parent#@@
 		if not parent.isValid():
 			if(row == 0 and column == 0):
 				return self.createIndex(0,0, self.topWidget)
@@ -94,6 +102,7 @@ class SimpleTreeModel(QtCore.QAbstractItemModel):
 
 
 	def parent(self, index):
+		print 'parent: ', index#@@
 		if index.isValid():
 			wgt = QtGui.QWidget(index.internalPointer())
 			if not wgt == self.topWidget:
@@ -107,7 +116,7 @@ class SimpleTreeModel(QtCore.QAbstractItemModel):
 if __name__ == '__main__':
 	app = QtGui.QApplication(sys.argv)
 	treeview = QtGui.QTreeView()
-	model = SimpleTreeModel()
+	model = SimpleTreeModel(treeview, topWidget=treeview)
 	treeview.setModel(model)
 	treeview.show()
 	sys.exit(app.exec_())
