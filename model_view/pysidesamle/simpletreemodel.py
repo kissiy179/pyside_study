@@ -183,26 +183,28 @@ class TreeModel(QtCore.QAbstractItemModel):
         return QtCore.Qt.MoveAction
 
 
-    def insertRows(self, position, rows, parent=QtCore.QModelIndex()):
+    def insertRows(self, position, rows, parent=QtCore.QModelIndex(), data=['a', 'b']):
+        # print 'insert---'
         self.beginInsertRows(parent, position, position + rows -1)
         if not parent.isValid():
             parentItem = self.rootItem
         else:
             parentItem = parent.internalPointer()
-        crrItem = parentItem.childItems[position]
-        print crrItem.data()
+        # crrItem = parentItem.childItems[position]
+        # print crrItem.data()
         for row in range(rows):
-            parentItem.childItems.insert(position, TreeItem(['test', 'unko'], parentItem))
+            parentItem.childItems.insert(position, TreeItem(data, parentItem))
             # self.strings.insert(position, '--- tmp ---')appendChild()
         self.endInsertRows()
-        for i in parentItem.childItems:
-            print i.data()
+        # for i in parentItem.childItems:
+        #     print i.data()
         return True
 
 
 
 
     def removeRows(self, position, rows, parent=QtCore.QModelIndex()):
+        # print 'remove==='
         self.beginRemoveRows(parent, position, position + rows -1)
         if not parent.isValid():
             parentItem = self.rootItem
@@ -211,6 +213,58 @@ class TreeModel(QtCore.QAbstractItemModel):
         for row in range(rows):
             del parentItem.childItems[position]
         self.endRemoveRows()
+        return True
+
+
+
+    def mimeData(self, indexes):
+        mimeData = super(TreeModel, self).mimeData(indexes)
+        encodeData = QtCore.QByteArray()
+        stream = QtCore.QDataStream(encodeData, QtCore.QIODevice.WriteOnly)
+        for index in indexes:
+            if index.isValid() and index.column() == 0:
+                text = self.data(index, QtCore.Qt.DisplayRole)
+                # print index.row(), index.column(), text, '*******************'
+                stream.writeString(text)
+        mimeData.setData('application/vnd.text.list', encodeData)
+        # print '--------------------------'
+        # print mimeData
+        # print repr(encodeData)
+        # print stream
+        # print mimeData.text()
+        return mimeData
+
+
+    def dropMimeData(self, data, action, row, column, parent):
+        # print row, column, parent, '----'
+        if action == QtCore.Qt.IgnoreAction:
+            return True
+        if not data.hasFormat('application/vnd.text.list'):
+            return False
+        if column > 0:
+            return False
+        if row != -1:
+            beginRow = row
+            print 'row = -1'
+        elif parent.isValid():
+            beginRow = parent.row()
+            print 'isValid'
+        else:
+            beginRow = self.rowCount(parent)
+            print 'else'
+        encodeData = data.data('application/vnd.text.list')
+        stream = QtCore.QDataStream(encodeData, QtCore.QIODevice.ReadOnly)
+        newItems = []
+        rows = 0
+        while not stream.atEnd():
+            text = stream.readString()
+            newItems.append(text)
+            rows += 1
+        self.insertRows(beginRow, rows, parent, newItems)
+        # for text in newItems:
+        #     idx = parent.child(beginRow, 0)
+        #     self.setData(idx, text)
+        #     beginRow += 1
         return True
 
 
@@ -232,5 +286,6 @@ if __name__ == '__main__':
     view.setDragEnabled(True)
     view.setAcceptDrops(True)
     # view.setDropIndicatorShown(True)
+    view.resize(1000, 500)
     view.show()
     sys.exit(app.exec_())
