@@ -34,6 +34,7 @@ class TreeItem(object):
         self.itemData = data
         self.childItems = []
 
+
     def appendChild(self, item):
         self.childItems.append(item)
 
@@ -46,7 +47,7 @@ class TreeItem(object):
     def columnCount(self):
         return len(self.itemData)
 
-    def data(self, column):
+    def data(self, column=0):
         try:
             return self.itemData[column]
         except IndexError:
@@ -86,15 +87,11 @@ class TreeModel(QtCore.QAbstractItemModel):
 
         return item.data(index.column())
 
-    def flags(self, index):
-        if not index.isValid():
-            return QtCore.Qt.NoItemFlags
-
-        return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
 
     def headerData(self, section, orientation, role):
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
             return self.rootItem.data(section)
+
 
         return None
 
@@ -174,6 +171,50 @@ class TreeModel(QtCore.QAbstractItemModel):
             number += 1
 
 
+    def flags(self, index):
+        defaultFlags = super(TreeModel, self).flags(index) | QtCore.Qt.ItemIsEditable
+        if index.isValid:
+            return QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled | defaultFlags
+        else:
+            return QtCore.Qt.ItemIsDragEnabled | defaultFlags
+
+
+    def supportedDropActions(self):
+        return QtCore.Qt.MoveAction
+
+
+    def insertRows(self, position, rows, parent=QtCore.QModelIndex()):
+        self.beginInsertRows(parent, position, position + rows -1)
+        if not parent.isValid():
+            parentItem = self.rootItem
+        else:
+            parentItem = parent.internalPointer()
+        crrItem = parentItem.childItems[position]
+        print crrItem.data()
+        for row in range(rows):
+            parentItem.childItems.insert(position, TreeItem(['test', 'unko'], parentItem))
+            # self.strings.insert(position, '--- tmp ---')appendChild()
+        self.endInsertRows()
+        for i in parentItem.childItems:
+            print i.data()
+        return True
+
+
+
+
+    def removeRows(self, position, rows, parent=QtCore.QModelIndex()):
+        self.beginRemoveRows(parent, position, position + rows -1)
+        if not parent.isValid():
+            parentItem = self.rootItem
+        else:
+            parentItem = parent.internalPointer()
+        for row in range(rows):
+            del parentItem.childItems[position]
+        self.endRemoveRows()
+        return True
+
+
+
 if __name__ == '__main__':
 
     import sys
@@ -188,5 +229,8 @@ if __name__ == '__main__':
     view = QtGui.QTreeView()
     view.setModel(model)
     view.setWindowTitle("Simple Tree Model")
+    view.setDragEnabled(True)
+    view.setAcceptDrops(True)
+    # view.setDropIndicatorShown(True)
     view.show()
     sys.exit(app.exec_())
