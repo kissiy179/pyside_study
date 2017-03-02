@@ -64,6 +64,9 @@ class TreeItem(object):
 
 
 class TreeModel(QtCore.QAbstractItemModel):
+
+    crritem = None
+
     def __init__(self, data, parent=None):
         super(TreeModel, self).__init__(parent)
 
@@ -183,8 +186,8 @@ class TreeModel(QtCore.QAbstractItemModel):
         return QtCore.Qt.MoveAction
 
 
-    def insertRows(self, position, rows, parent=QtCore.QModelIndex(), data=['a', 'b']):
-        # print 'insert---'
+    def insertRows(self, position, rows, parent=QtCore.QModelIndex(), data=TreeItem(("Title", "Summary"))):
+        print 'insert---'
         self.beginInsertRows(parent, position, position + rows -1)
         if not parent.isValid():
             parentItem = self.rootItem
@@ -193,7 +196,9 @@ class TreeModel(QtCore.QAbstractItemModel):
         # crrItem = parentItem.childItems[position]
         # print crrItem.data()
         for row in range(rows):
-            parentItem.childItems.insert(position, TreeItem(data, parentItem))
+            parentItem.childItems.insert(position, data)
+            data.parentItem = parentItem
+            print 'insert'
             # self.strings.insert(position, '--- tmp ---')appendChild()
         self.endInsertRows()
         # for i in parentItem.childItems:
@@ -204,13 +209,14 @@ class TreeModel(QtCore.QAbstractItemModel):
 
 
     def removeRows(self, position, rows, parent=QtCore.QModelIndex()):
-        # print 'remove==='
+        print 'remove==='
         self.beginRemoveRows(parent, position, position + rows -1)
         if not parent.isValid():
             parentItem = self.rootItem
         else:
             parentItem = parent.internalPointer()
         for row in range(rows):
+            print 'parent item = ', parentItem.data()
             del parentItem.childItems[position]
         self.endRemoveRows()
         return True
@@ -218,6 +224,7 @@ class TreeModel(QtCore.QAbstractItemModel):
 
 
     def mimeData(self, indexes):
+        self.crritem = indexes[0].internalPointer() #@@
         mimeData = super(TreeModel, self).mimeData(indexes)
         encodeData = QtCore.QByteArray()
         stream = QtCore.QDataStream(encodeData, QtCore.QIODevice.WriteOnly)
@@ -227,6 +234,8 @@ class TreeModel(QtCore.QAbstractItemModel):
                 # print index.row(), index.column(), text, '*******************'
                 stream.writeString(text)
         mimeData.setData('application/vnd.text.list', encodeData)
+        mimeData._data = self.crritem
+        print mimeData
         # print '--------------------------'
         # print mimeData
         # print repr(encodeData)
@@ -236,31 +245,24 @@ class TreeModel(QtCore.QAbstractItemModel):
 
 
     def dropMimeData(self, data, action, row, column, parent):
-        # print row, column, parent, '----'
         if action == QtCore.Qt.IgnoreAction:
             return True
-        if not data.hasFormat('application/vnd.text.list'):
-            return False
-        if column > 0:
-            return False
+        # if not data.hasFormat('application/vnd.text.list'):
+        #     return False
+        # if column > 0:
+        #     return False
         if row != -1:
             beginRow = row
-            print 'row = -1'
+            print 'row = {0}'.format(row)
         elif parent.isValid():
-            beginRow = parent.row()
-            print 'isValid'
+            beginRow = 0
+            print 'row = isValid'
         else:
             beginRow = self.rowCount(parent)
-            print 'else'
-        encodeData = data.data('application/vnd.text.list')
-        stream = QtCore.QDataStream(encodeData, QtCore.QIODevice.ReadOnly)
-        newItems = []
-        rows = 0
-        while not stream.atEnd():
-            text = stream.readString()
-            newItems.append(text)
-            rows += 1
-        self.insertRows(beginRow, rows, parent, newItems)
+            print 'row = else'
+        print beginRow, self.crritem.data()
+        self.insertRows(row, 1, parent, data=self.crritem)
+        # self.crritem = None
         # for text in newItems:
         #     idx = parent.child(beginRow, 0)
         #     self.setData(idx, text)
