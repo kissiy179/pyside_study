@@ -22,7 +22,7 @@
 ## WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 ##
 ############################################################################
-
+import copy
 from PySide import QtCore, QtGui
 
 import simpletreemodel_rc
@@ -66,6 +66,8 @@ class TreeItem(object):
 class TreeModel(QtCore.QAbstractItemModel):
 
     crritem = None
+    startparentitem = None
+    dragitemposition = -1
 
     def __init__(self, data, parent=None):
         super(TreeModel, self).__init__(parent)
@@ -137,6 +139,11 @@ class TreeModel(QtCore.QAbstractItemModel):
         return parentItem.childCount()
 
     def setupModelData(self, lines, parent):
+        for i in range(10):
+            name = 'node{0}'.format(i)
+            parent.appendChild(TreeItem([name], parent))
+        return
+
         parents = [parent]
         indentations = [0]
 
@@ -186,87 +193,77 @@ class TreeModel(QtCore.QAbstractItemModel):
         return QtCore.Qt.MoveAction
 
 
-    def insertRows(self, position, rows, parent=QtCore.QModelIndex(), data=TreeItem(("Title", "Summary"))):
-        print 'insert---'
+    def insertRows(self, position, rows, parent=QtCore.QModelIndex(), data=['a', 'b']):
+        print 'insertRows:', position, rows, parent
         self.beginInsertRows(parent, position, position + rows -1)
         if not parent.isValid():
             parentItem = self.rootItem
         else:
             parentItem = parent.internalPointer()
-        # crrItem = parentItem.childItems[position]
-        # print crrItem.data()
         for row in range(rows):
-            parentItem.childItems.insert(position, data)
-            data.parentItem = parentItem
-            print 'insert'
+            # parentItem.childItems.insert(position, TreeItem(data, parentItem))
+            self.crritem.parentItem = parentItem
+            parentItem.childItems.insert(position, self.crritem)
             # self.strings.insert(position, '--- tmp ---')appendChild()
         self.endInsertRows()
-        # for i in parentItem.childItems:
-        #     print i.data()
         return True
 
 
 
 
     def removeRows(self, position, rows, parent=QtCore.QModelIndex()):
-        print 'remove==='
+        print 'removeRows:', position, rows, parent
         self.beginRemoveRows(parent, position, position + rows -1)
         if not parent.isValid():
             parentItem = self.rootItem
         else:
             parentItem = parent.internalPointer()
-        for row in range(rows):
-            print 'parent item = ', parentItem.data()
-            del parentItem.childItems[position]
+        delitem = self.startparentitem.childItems[self.dragitemposition]
+        if delitem.parentItem == self.crritem.parentItem and delitem.row() > self.crritem.row():
+            self.dragitemposition += 1
+        del self.startparentitem.childItems[self.dragitemposition]
         self.endRemoveRows()
         return True
 
 
 
     def mimeData(self, indexes):
-        self.crritem = indexes[0].internalPointer() #@@
+        print 'mimeData'
         mimeData = super(TreeModel, self).mimeData(indexes)
         encodeData = QtCore.QByteArray()
         stream = QtCore.QDataStream(encodeData, QtCore.QIODevice.WriteOnly)
         for index in indexes:
             if index.isValid() and index.column() == 0:
-                text = self.data(index, QtCore.Qt.DisplayRole)
-                # print index.row(), index.column(), text, '*******************'
-                stream.writeString(text)
+                # text = self.data(index, QtCore.Qt.DisplayRole)()
+                self.crritem = copy.deepcopy(index.internalPointer())
+                self.startparentitem = index.internalPointer().parentItem
+                self.dragitemposition = index.row()
+                # stream.writeString(text)
         mimeData.setData('application/vnd.text.list', encodeData)
-        mimeData._data = self.crritem
-        print mimeData
-        # print '--------------------------'
-        # print mimeData
-        # print repr(encodeData)
-        # print stream
-        # print mimeData.text()
         return mimeData
 
 
     def dropMimeData(self, data, action, row, column, parent):
+        print 'dropMimeData'
         if action == QtCore.Qt.IgnoreAction:
             return True
-        # if not data.hasFormat('application/vnd.text.list'):
-        #     return False
-        # if column > 0:
-        #     return False
+        if not data.hasFormat('application/vnd.text.list'):
+            return False
         if row != -1:
             beginRow = row
-            print 'row = {0}'.format(row)
+            # print 'row = -1'
         elif parent.isValid():
-            beginRow = 0
-            print 'row = isValid'
+            beginRow = parent.row()
+            # print 'isValid'
         else:
             beginRow = self.rowCount(parent)
-            print 'row = else'
-        print beginRow, self.crritem.data()
-        self.insertRows(row, 1, parent, data=self.crritem)
-        # self.crritem = None
-        # for text in newItems:
-        #     idx = parent.child(beginRow, 0)
-        #     self.setData(idx, text)
-        #     beginRow += 1
+            # print 'else'
+        # print 'insert row = ', beginRow
+        encodeData = data.data('application/vnd.text.list')
+        stream = QtCore.QDataStream(encodeData, QtCore.QIODevice.ReadOnly)
+        newItems = []
+        rows = 1
+        self.insertRows(beginRow, rows, parent, newItems)
         return True
 
 
