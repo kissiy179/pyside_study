@@ -46,6 +46,7 @@ class TreeModel(QAbstractItemModel):
     crritem = None
     startparentitem = None
     dragitemposition = -1
+    expanditem = Signal(QModelIndex, bool)
 
     def __init__(self, data, parent=None):
         super(TreeModel, self).__init__(parent)
@@ -242,8 +243,24 @@ class TreeModel(QAbstractItemModel):
         newItems = []
         rows = 1
         self.insertRows(beginRow, rows, parent, newItems)
+        self.expanditem.emit(parent, True)
         return True
 
+
+
+class MyTree(QTreeView):
+
+    def __init__(self, *args):
+        super(MyTree, self).__init__(*args)
+
+
+    def dropEvent(self, event):
+        print type(event)#, event.source()
+        super(MyTree, self).dropEvent(event)
+
+
+    def expandItem(self, index=None):
+        self.expand
 
 
 if __name__ == '__main__':
@@ -257,8 +274,9 @@ if __name__ == '__main__':
     model = TreeModel(str(f.readAll()))
     f.close()
 
-    view = QTreeView()
+    view = MyTree()
     view.setModel(model)
+    model.expanditem.connect(view.setExpanded)
     view.setWindowTitle("Simple Tree Model")
     view.setDragEnabled(True)
     view.setAcceptDrops(True)
